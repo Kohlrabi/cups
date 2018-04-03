@@ -31,11 +31,20 @@ cupsCancelDestJob(http_t      *http,	/* I - Connection to destination */
                   int         job_id)	/* I - Job ID */
 {
   cups_dinfo_t	*info;			/* Destination information */
+  const char	*username;		/* CUPS user name */
 
 
   if ((info = cupsCopyDestInfo(http, dest)) != NULL)
   {
     ipp_t	*request;		/* Cancel-Job request */
+
+  /*
+   * Get username from options
+   */
+  
+    if ((username = cupsGetOption("User", dest->num_options, dest->options)) == NULL)
+      username = cupsUser();
+
 
     request = ippNewRequest(IPP_OP_CANCEL_JOB);
 
@@ -43,7 +52,7 @@ cupsCancelDestJob(http_t      *http,	/* I - Connection to destination */
 
     ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri", NULL, info->uri);
     ippAddInteger(request, IPP_TAG_OPERATION, IPP_TAG_INTEGER, "job-id", job_id);
-    ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", NULL, cupsUser());
+    ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name", NULL, username);
 
     ippDelete(cupsDoRequest(http, request, info->resource));
     cupsFreeDestInfo(info);
@@ -73,6 +82,7 @@ cupsCloseDestJob(
   int			i;		/* Looping var */
   ipp_t			*request = NULL;/* Close-Job/Send-Document request */
   ipp_attribute_t	*attr;		/* operations-supported attribute */
+  const char		*username;	/* CUPS user name */
 
 
   DEBUG_printf(("cupsCloseDestJob(http=%p, dest=%p(%s/%s), info=%p, job_id=%d)", (void *)http, (void *)dest, dest ? dest->name : NULL, dest ? dest->instance : NULL, (void *)info, job_id));
@@ -98,6 +108,14 @@ cupsCloseDestJob(
  /*
   * Build a Close-Job or empty Send-Document request...
   */
+
+  /*
+   * Get username from options
+   */
+
+  if ((username = cupsGetOption("User", dest->num_options, dest->options)) == NULL)
+    username = cupsUser();
+
 
   if ((attr = ippFindAttribute(info->attrs, "operations-supported",
                                IPP_TAG_ENUM)) != NULL)
@@ -128,7 +146,7 @@ cupsCloseDestJob(
   ippAddInteger(request, IPP_TAG_OPERATION, IPP_TAG_INTEGER, "job-id",
                 job_id);
   ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name",
-               NULL, cupsUser());
+               NULL, username);
   if (ippGetOperation(request) == IPP_OP_SEND_DOCUMENT)
     ippAddBoolean(request, IPP_TAG_OPERATION, "last-document", 1);
 
@@ -167,6 +185,7 @@ cupsCreateDestJob(
   ipp_t			*request,	/* Create-Job request */
 			*response;	/* Create-Job response */
   ipp_attribute_t	*attr;		/* job-id attribute */
+  const char	  	*username;	/* CUPS user name */
 
 
   DEBUG_printf(("cupsCreateDestJob(http=%p, dest=%p(%s/%s), info=%p, "
@@ -196,6 +215,14 @@ cupsCreateDestJob(
  /*
   * Build a Create-Job request...
   */
+  
+  /*
+   * Get username from options
+   */
+  
+  if ((username = cupsGetOption("User", dest->num_options, dest->options)) == NULL)
+    username = cupsUser();
+
 
   if ((request = ippNewRequest(IPP_OP_CREATE_JOB)) == NULL)
   {
@@ -209,7 +236,7 @@ cupsCreateDestJob(
   ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_URI, "printer-uri",
                NULL, info->uri);
   ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name",
-               NULL, cupsUser());
+               NULL, username);
   if (title)
     ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "job-name", NULL,
                  title);
@@ -317,6 +344,7 @@ cupsStartDestDocument(
 {
   ipp_t		*request;		/* Send-Document request */
   http_status_t	status;			/* HTTP status */
+  const char	*username;		/* CUPS user name */
 
 
   DEBUG_printf(("cupsStartDestDocument(http=%p, dest=%p(%s/%s), info=%p, job_id=%d, docname=\"%s\", format=\"%s\", num_options=%d, options=%p, last_document=%d)", (void *)http, (void *)dest, dest ? dest->name : NULL, dest ? dest->instance : NULL, (void *)info, job_id, docname, format, num_options, (void *)options, last_document));
@@ -343,6 +371,14 @@ cupsStartDestDocument(
   * Create a Send-Document request...
   */
 
+  /*
+   * Get username from options
+   */
+  
+  if ((username = cupsGetOption("User", dest->num_options, dest->options)) == NULL)
+    username = cupsUser();
+
+
   if ((request = ippNewRequest(IPP_OP_SEND_DOCUMENT)) == NULL)
   {
     _cupsSetError(IPP_STATUS_ERROR_INTERNAL, strerror(ENOMEM), 0);
@@ -357,7 +393,7 @@ cupsStartDestDocument(
                NULL, info->uri);
   ippAddInteger(request, IPP_TAG_OPERATION, IPP_TAG_INTEGER, "job-id", job_id);
   ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "requesting-user-name",
-               NULL, cupsUser());
+               NULL, username);
   if (docname)
     ippAddString(request, IPP_TAG_OPERATION, IPP_TAG_NAME, "document-name",
                  NULL, docname);
